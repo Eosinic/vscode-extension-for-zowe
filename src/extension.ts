@@ -1641,7 +1641,7 @@ export async function saveFile(doc: vscode.TextDocument, datasetProvider: IZoweT
 
     // get session from session name
     let documentSession: Session;
-    let node: IZoweUSSTreeNode;
+    let node: IZoweDatasetTreeNode;
     const sesNode = (await datasetProvider.getChildren()).find((child) =>
         child.label.trim() === sesName);
     if (sesNode) {
