@@ -385,6 +385,40 @@ describe("Extension Integration Tests", () => {
             fs.writeFileSync(path.join(extension.ZOWETEMPFOLDER, children[0].label + "(" + childrenMembers[0].label + ")"), originalData2);
         }).timeout(TIMEOUT);
 
+        it.skip("should fail when etags don't match", async () => {
+            // Test for PS under HLQ
+            const showErrorStub = sandbox.spy(vscode.window, "showErrorMessage");
+            const showWarnStub = sandbox.spy(vscode.window, "showWarningMessage");
+            const gotCalled = showErrorStub.calledWith("Favorites file corrupted: ");
+            const gotCalled2 = showWarnStub.calledWith("Favorites file corrupted: ");
+
+
+            const profiles = await testTree.getChildren();
+            profiles[1].dirty = true;
+            const children = await profiles[1].getChildren();
+            children[1].dirty = true;
+            await extension.openPS(children[1], true);
+
+            const changedData = "PS Upload Test";
+
+            fs.writeFileSync(path.join(extension.ZOWETEMPFOLDER, children[1].label + "[" + profiles[1].label + "]"), changedData);
+
+            // Upload file
+            const doc = await vscode.workspace.openTextDocument(path.join(extension.ZOWETEMPFOLDER,
+            children[1].label + "[" + profiles[1].label + "]"));
+            children[1].setEtag("1313");
+            await extension.saveFile(doc, testTree);
+            expect(gotCalled).to.equal(true);
+            expect(gotCalled2).to.equal(true);
+            // Download file
+            await extension.openPS(children[1], true);
+
+            expect(doc.getText().trim()).to.deep.equal("PS Upload Test");
+
+            // Change contents back
+            const originalData = "";
+            fs.writeFileSync(path.join(path.join(extension.ZOWETEMPFOLDER, children[1].label)), originalData);
+        });
         // TODO add tests for saving data set from favorites
     });
 

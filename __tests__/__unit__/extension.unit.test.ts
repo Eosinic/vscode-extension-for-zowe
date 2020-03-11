@@ -460,6 +460,9 @@ describe("Extension Unit Tests", () => {
     Object.defineProperty(imperative, "ImperativeConfig", { value: ImperativeConfig });
     Object.defineProperty(ImperativeConfig, "instance", { value: icInstance });
     Object.defineProperty(icInstance, "cliHome", { get: cliHome });
+    Object.defineProperty(vscode, "Position", {value: jest.fn()});
+    Object.defineProperty(vscode, "Range", {value: jest.fn()});
+    Object.defineProperty(activeTextEditor, "edit", {value: jest.fn()});
 
     beforeEach(() => {
         mockLoadNamedProfile.mockReturnValue(profileOne);
@@ -1966,6 +1969,7 @@ describe("Extension Unit Tests", () => {
         await extension.saveFile(testDoc3, testTree);
         expect(concatChildNodes.mock.calls.length).toBe(1);
 
+        // should detect a merge conflict if etags don't match
         testTree.getChildren.mockReturnValueOnce([new ZoweDatasetNode("node", vscode.TreeItemCollapsibleState.None, sessNode, null,
             undefined, undefined, profileOne), sessNode]);
         dataSetList.mockReset();
@@ -1979,6 +1983,8 @@ describe("Extension Unit Tests", () => {
         testResponse.commandResponse = "Rest API failure with HTTP(S) status 412";
         withProgress.mockResolvedValueOnce(testResponse);
         dataSet.mockReset();
+        testDoc.getText = jest.fn();
+
         const downloadResponse = {
             success: true,
             commandResponse: "",
@@ -1989,8 +1995,8 @@ describe("Extension Unit Tests", () => {
         dataSet.mockResolvedValue(downloadResponse);
 
         await extension.saveFile(testDoc, testTree);
-        expect(showWarningMessage.mock.calls[0][0]).toBe("Remote file has been modified in the meantime.\nSelect 'Compare' to resolve the conflict.");
         expect(concatChildNodes.mock.calls.length).toBe(1);
+        expect(showWarningMessage.mock.calls[0][0]).toBe("Remote file has been modified in the meantime.\nSelect 'Compare' to resolve the conflict.");
     });
 
     it("Testing that openPS is executed successfully", async () => {
@@ -3051,12 +3057,9 @@ describe("Extension Unit Tests", () => {
             }
         };
         ussFile.mockResolvedValueOnce(downloadResponse);
-        try {
-            await extension.saveUSSFile(testDoc, testUSSTree);
-        } catch (e) {
-            // this is OK. We are interested in the next expect (showWarninMessage) to fullfil
-            expect(e.message).toBe("vscode.Position is not a constructor");
-        }
+        await extension.saveUSSFile(testDoc, testUSSTree);
+
+        expect(showWarningMessage.mock.calls.length).toBe(1);
         expect(showWarningMessage.mock.calls[0][0]).toBe("Remote file has been modified in the meantime.\nSelect 'Compare' to resolve the conflict.");
     });
 
